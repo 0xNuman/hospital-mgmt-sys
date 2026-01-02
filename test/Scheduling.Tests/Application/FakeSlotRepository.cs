@@ -12,4 +12,10 @@ public class FakeSlotRepository(Slot? slot) : ISlotRepository
         // No-op for tests
         return Task.CompletedTask;
     }
+
+    public Task CancelBooking(Guid slotId)
+    {
+        // No-op for now
+        return Task.CompletedTask;
+    }
 }
