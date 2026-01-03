@@ -25,6 +25,7 @@ public static class ReferenceDataInfrastructureModule
         services.AddScoped<IDoctorAvailabilityRepository, DoctorAvailabilityRepository>();
 
         services.AddScoped<IDoctorExistenceChecker, DoctorExistenceChecker>();
+        services.AddScoped<IDoctorConfigurationAccessor, DoctorConfigurationAccessor>();
 
         services.AddScoped<ReferenceDataSeeder>();
 

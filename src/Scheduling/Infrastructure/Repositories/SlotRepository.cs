@@ -17,7 +17,6 @@ public sealed class SlotRepository(SchedulingDbContext db) : ISlotRepository
                 s.DoctorId == doctorId &&
                 s.Date == date &&
                 s.Status == SlotStatus.Available)
-            .OrderBy(s => s.StartTime)
             .ToListAsync();
     }
 
@@ -30,6 +29,12 @@ public sealed class SlotRepository(SchedulingDbContext db) : ISlotRepository
     public async Task Update(Slot slot)
     {
         db.Slots.Update(slot);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task AddBatch(IEnumerable<Slot> slots)
+    {
+        db.Slots.AddRange(slots);
         await db.SaveChangesAsync();
     }
 }

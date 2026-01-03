@@ -3,6 +3,7 @@ using Scalar.AspNetCore;
 using Scheduling.Infrastructure;
 using Web.Middlewares;
 using Web.Modules;
+using Web.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,8 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddHostedService<SlotGenerationWorker>();
 
 var app = builder.Build();
 

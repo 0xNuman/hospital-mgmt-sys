@@ -1,3 +1,4 @@
+using ReferenceData.Domain.Availability;
 using ReferenceData.Domain.Doctors;
 using ReferenceData.Domain.Patients;
 
@@ -30,8 +31,17 @@ public sealed class ReferenceDataSeeder(ReferenceDataDbContext db)
             Email = "ved.prakash@udayclinics.com"
         };
 
+        var doctorAvailability = new DoctorAvailability(doctor.Id,
+            new HashSet<DayOfWeek> { DayOfWeek.Monday, DayOfWeek.Wednesday },
+            new TimeOnly(10, 0),
+            new TimeOnly(11, 0),
+            15,
+            7,
+            true);
+
         await db.Doctors.AddAsync(doctor);
         await db.Patients.AddAsync(patient);
+        await db.DoctorAvailabilities.AddAsync(doctorAvailability);
         await db.SaveChangesAsync();
     }
 }

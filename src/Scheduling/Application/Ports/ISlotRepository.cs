@@ -13,4 +13,6 @@ public interface ISlotRepository
     Task Add(Slot slot);
 
     Task Update(Slot slot);
+
+    Task AddBatch(IEnumerable<Slot> slots);
 }
