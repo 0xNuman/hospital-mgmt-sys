@@ -1,22 +1,51 @@
 using Microsoft.EntityFrameworkCore;
 using Scheduling.Domain.Availability;
+using Scheduling.Domain.Bookings;
+using Scheduling.Domain.Slots;
 
 namespace Scheduling.Infrastructure;
 
 public sealed class SchedulingDbContext(DbContextOptions<SchedulingDbContext> options) : DbContext(options)
 {
-    public DbSet<SlotEntity> Slots => Set<SlotEntity>();
+    public DbSet<Slot> Slots => Set<Slot>();
+
+    public DbSet<Booking> Bookings => Set<Booking>();
 
     public DbSet<AvailabilityException> AvailabilityExceptions => Set<AvailabilityException>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<SlotEntity>()
-            .HasKey(s => s.Id);
+        modelBuilder.Entity<Slot>(entity =>
+        {
+            entity.HasKey(x => x.Id);
 
-        modelBuilder.Entity<SlotEntity>()
-            .HasIndex(s => new { s.DoctorId, s.StartTime })
-            .IsUnique();
+            entity.HasIndex(x =>
+                    new { x.DoctorId, x.Date, x.StartTime })
+                .IsUnique();
+
+            entity.Property(x => x.StartTime)
+                .HasConversion(
+                    t => t.ToTimeSpan(),
+                    t => TimeOnly.FromTimeSpan(t));
+
+            entity.Property(x => x.EndTime)
+                .HasConversion(
+                    t => t.ToTimeSpan(),
+                    t => TimeOnly.FromTimeSpan(t));
+        });
+
+        modelBuilder.Entity<Booking>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(b => b.SlotId).IsRequired();
+
+            entity.Property(b => b.PatientId).IsRequired();
+
+            entity.Property(b => b.Status).HasConversion<string>().IsRequired();
+
+            entity.HasIndex(b => b.SlotId).IsUnique().HasFilter("Status = 'Active'");
+        });
 
         modelBuilder.Entity<AvailabilityException>(entity =>
         {

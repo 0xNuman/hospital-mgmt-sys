@@ -1,24 +1,31 @@
 using Scheduling.Application.Commands;
-using Scheduling.Application.Exceptions;
 using Scheduling.Application.Ports;
 using Scheduling.Application.Results;
 
 namespace Scheduling.Application.UseCases;
 
-public sealed class CancelBooking(ISlotRepository slots)
+public sealed class CancelBooking(IBookingRepository bookings)
 {
-    public async Task<BookingResult> Execute(CancelBookingCommand command)
+    public async Task<Result> Execute(CancelBookingCommand command)
     {
-        ArgumentNullException.ThrowIfNull(command);
+        var booking = await bookings.GetById(command.BookingId);
+
+        if (booking is null)
+        {
+            return Result.Failure("Booking not found");
+        }
 
         try
         {
-            await slots.CancelBooking(command.SlotId);
-            return BookingResult.Ok();
+            booking.Cancel();
         }
-        catch (SlotNotBookedException e)
+        catch (InvalidOperationException e)
         {
-            return BookingResult.Fail(e.Message);
+            return Result.Failure(e.Message);
         }
+
+        await bookings.Update(booking);
+
+        return Result.Success();
     }
 }

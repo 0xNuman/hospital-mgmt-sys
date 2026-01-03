@@ -23,9 +23,10 @@ public static class BlockingEndpoints
         AdminBlockSlot useCase)
     {
         var command = new BlockSlotCommand(slotId);
-        await useCase.Execute(command);
+        var result = await useCase.Execute(command);
 
-        // Block ALWAYS wins
-        return Results.Ok(ApiResult.Ok());
+        return !result.IsSuccess
+            ? Results.NotFound(ApiResult.Fail("SlotNotFound", result.Error!))
+            : Results.Ok(ApiResult.Ok());
     }
 }

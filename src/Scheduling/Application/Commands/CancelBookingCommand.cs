@@ -1,5 +1,5 @@
 namespace Scheduling.Application.Commands;
 
 public record CancelBookingCommand(
-    Guid SlotId
+    Guid BookingId
 );

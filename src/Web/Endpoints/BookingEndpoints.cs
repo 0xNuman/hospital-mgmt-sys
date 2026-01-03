@@ -31,6 +31,7 @@ public static class BookingEndpoints
         
         var result = await useCase.Execute(command);
 
+        // TODO: Consider returning the newly created Id
         if (result.Success)
             return Results.Ok(ApiResult.Ok());
 

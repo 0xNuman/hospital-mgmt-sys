@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Scheduling.Application.Commands;
 using Scheduling.Application.Results;
 using Scheduling.Application.UseCases;
-using Scheduling.Domain;
+using Scheduling.Domain.Bookings;
+using Scheduling.Domain.Slots;
 using Scheduling.Infrastructure;
 using Scheduling.Infrastructure.Repositories;
 
@@ -16,7 +17,7 @@ public class CancelVsBookConcurrencyTests : IDisposable
 
     public CancelVsBookConcurrencyTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:;Cache=Shared");
+        _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
 
         _options = new DbContextOptionsBuilder<SchedulingDbContext>()
@@ -30,72 +31,66 @@ public class CancelVsBookConcurrencyTests : IDisposable
     [Fact]
     public async Task Cancel_and_book_race_ends_in_consistent_state()
     {
+        // Arrange
         var slotId = Guid.NewGuid();
-        SeedBookedSlot(slotId);
+        var initialBookingId = Guid.NewGuid();
+        await SeedBookedSlot(slotId, initialBookingId);
 
+        // Act: Race Condition
+        // T1: Try to book the slot (Patient B)
         var bookTask = Task.Run(() => TryBook(slotId));
-        var cancelTask = Task.Run(() => TryCancel(slotId));
+        // T2: Try to cancel the existing booking (Patient A)
+        var cancelTask = Task.Run(() => TryCancel(initialBookingId));
 
-        var results = await Task.WhenAll(bookTask, cancelTask);
+        await Task.WhenAll(bookTask, cancelTask);
 
-        Assert.All(results, r => Assert.True(r.Success));
-
+        // Assert
         await using var verify = new SchedulingDbContext(_options);
-        var slot = verify.Slots.Single(s => s.Id == slotId);
 
-        if (slot.Status == (int)SlotStatus.Available)
-        {
-            Assert.Null(slot.AppointmentId);
-        }
-        else if (slot.Status == (int)SlotStatus.Booked)
-        {
-            Assert.NotNull(slot.AppointmentId);
-        }
-        else
-        {
-            Assert.Fail("Slot ended in invalid state");
-        }
+        // 1. Check Slot Status (Should always be Available in the new model, as logic is in Booking)
+        var slot = await verify.Slots.SingleAsync(s => s.Id == slotId);
+        Assert.Equal(SlotStatus.Available, slot.Status);
 
-        Assert.True(
-            slot.Status == (int)SlotStatus.Booked ||
-            slot.Status == (int)SlotStatus.Available);
+        // 2. Check Bookings
+        var bookings = await verify.Bookings.Where(b => b.SlotId == slotId).ToListAsync();
+
+        var activeBookings = bookings.Count(b => b.Status == BookingStatus.Active);
+        Assert.True(activeBookings <= 1, "There should never be more than 1 active booking");
+
+        // Possible Outcomes:
+        // A) Cancel won race, Book won race -> Booking A Cancelled, Booking B Active (Valid)
+        // B) Cancel won race, Book lost race (e.g. read stale data) -> Booking A Cancelled, No Active (Valid)
+        // C) Book ran before Cancel? -> Impossible, Book would fail immediately as Slot was active.
     }
 
-    // ---------------- helpers ----------------
-
-    private async Task<BookingResult> TryBook(Guid slotId)
+    private async Task<BookSlotResult> TryBook(Guid slotId)
     {
         await using var ctx = new SchedulingDbContext(_options);
-        var repo = new SlotRepository(ctx);
-        var uc = new BookSlot(repo);
+        var slotRepo = new SlotRepository(ctx);
+        var bookingRepo = new BookingRepository(ctx);
+        var uc = new BookSlot(slotRepo, bookingRepo);
 
-        return await uc.Execute(new BookSlotCommand(
-            slotId,
-            Guid.NewGuid()));
+        return await uc.Execute(new BookSlotCommand(slotId, Guid.NewGuid()));
     }
 
-    private async Task<BookingResult> TryCancel(Guid slotId)
+    private async Task<Result> TryCancel(Guid bookingId)
     {
         await using var ctx = new SchedulingDbContext(_options);
-        var repo = new SlotRepository(ctx);
-        var uc = new CancelBooking(repo);
+        var bookingRepo = new BookingRepository(ctx);
+        var uc = new CancelBooking(bookingRepo);
 
-        return await uc.Execute(new CancelBookingCommand(slotId));
+        return await uc.Execute(new CancelBookingCommand(bookingId));
     }
 
-    private void SeedBookedSlot(Guid slotId)
+    private async Task SeedBookedSlot(Guid slotId, Guid bookingId)
     {
-        using var ctx = new SchedulingDbContext(_options);
-        ctx.Slots.Add(new SlotEntity
-        {
-            Id = slotId,
-            DoctorId = Guid.NewGuid(),
-            StartTime = DateTime.UtcNow,
-            EndTime = DateTime.UtcNow.AddMinutes(15),
-            Status = (int)SlotStatus.Booked,
-            AppointmentId = Guid.NewGuid()
-        });
-        ctx.SaveChanges();
+        await using var ctx = new SchedulingDbContext(_options);
+        // Create the Slot
+        ctx.Slots.Add(new Slot(slotId, Guid.NewGuid(), DateOnly.FromDateTime(DateTime.UtcNow), new TimeOnly(10, 0),
+            new TimeOnly(11, 0)));
+        // Create the Booking
+        ctx.Bookings.Add(new Booking(bookingId, slotId, Guid.NewGuid()));
+        await ctx.SaveChangesAsync();
     }
 
     public void Dispose() => _connection.Dispose();

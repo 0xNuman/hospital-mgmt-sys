@@ -21,11 +21,6 @@ public static class CancellationEndpoints
         var command = new CancelBookingCommand(slotId);
         var result = await useCase.Execute(command);
 
-        if (result.Success)
-        {
-            return Results.Ok(result);
-        }
-
-        return Results.BadRequest(ApiResult.Fail("CancelFailed", result.Error!));
+        return result.IsSuccess ? Results.Ok() : Results.BadRequest(ApiResult.Fail("CancelFailed", result.Error!));
     }
 }

@@ -1,14 +1,16 @@
-using Scheduling.Domain;
+using Scheduling.Domain.Slots;
 
 namespace Scheduling.Application.Ports;
 
 public interface ISlotRepository
 {
-    Task<Slot?> GetById(Guid slotId);
+    Task<Slot?> Get(Guid slotId);
 
-    Task Save(Slot slot);
-    
-    Task CancelBooking(Guid slotId);
-    
-    Task BlockSlot(Guid slotId);
+    Task<IReadOnlyList<Slot>> GetAvailableSlots(
+        Guid doctorId,
+        DateOnly date);
+
+    Task Add(Slot slot);
+
+    Task Update(Slot slot);
 }
