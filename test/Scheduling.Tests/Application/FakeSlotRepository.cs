@@ -18,4 +18,10 @@ public class FakeSlotRepository(Slot? slot) : ISlotRepository
         // No-op for now
         return Task.CompletedTask;
     }
+
+    public Task BlockSlot(Guid slotId)
+    {
+        // No-op for now
+        return Task.CompletedTask;
+    }
 }

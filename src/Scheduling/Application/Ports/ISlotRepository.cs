@@ -9,4 +9,6 @@ public interface ISlotRepository
     Task Save(Slot slot);
     
     Task CancelBooking(Guid slotId);
+    
+    Task BlockSlot(Guid slotId);
 }

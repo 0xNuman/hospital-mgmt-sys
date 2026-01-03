@@ -58,6 +58,21 @@ public sealed class SlotRepository(SchedulingDbContext db) : ISlotRepository
             throw new SlotNotBookedException();
     }
 
+    public async Task BlockSlot(Guid slotId)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+                                             UPDATE Slots
+                                             SET Status = {0},
+                                                 AppointmentId = NULL
+                                             WHERE Id = {1}
+                                               AND Status IN ({2}, {3})
+                                             """,
+            (int)SlotStatus.Blocked,
+            slotId,
+            (int)SlotStatus.Available,
+            (int)SlotStatus.Booked);
+    }
+
     private static Slot MapToDomain(SlotEntity e)
     {
         var slot = Slot.CreateAvailable(
