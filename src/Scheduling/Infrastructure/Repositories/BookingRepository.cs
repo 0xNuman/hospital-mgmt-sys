@@ -22,7 +22,9 @@ public sealed class BookingRepository(SchedulingDbContext db) : IBookingReposito
     }
 
     public async Task<Booking?> GetActiveBySlotId(Guid slotId) =>
-        await db.Bookings.SingleOrDefaultAsync(b => b.SlotId == slotId && b.Status == BookingStatus.Active);
+        await db.Bookings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(b => b.SlotId == slotId && b.Status == BookingStatus.Active);
 
     public async Task<Booking?> GetById(Guid bookingId)
         => await db.Bookings.FindAsync(bookingId);
@@ -32,6 +34,13 @@ public sealed class BookingRepository(SchedulingDbContext db) : IBookingReposito
         db.Bookings.Update(booking);
         await db.SaveChangesAsync();
     }
+
+    public async Task<IReadOnlyList<Booking>> GetByPatientId(Guid patientId)
+        => await db.Bookings
+            .AsNoTracking()
+            .Where(b => b.PatientId == patientId)
+            .OrderByDescending(b => b.Status)
+            .ToListAsync();
 
     private static bool IsUniqueConstraintViolation(DbUpdateException ex)
     {

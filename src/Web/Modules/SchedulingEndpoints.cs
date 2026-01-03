@@ -14,6 +14,8 @@ public static class SchedulingEndpoints
 
         app.MapAdminAvailabilityExceptionEndpoints();
 
+        app.MapPublicEndpoints();
+
         return app;
     }
 }

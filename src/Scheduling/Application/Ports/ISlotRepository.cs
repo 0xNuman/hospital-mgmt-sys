@@ -14,5 +14,7 @@ public interface ISlotRepository
 
     Task Update(Slot slot);
 
+    Task<IReadOnlyList<Slot>> GetInRange(Guid doctorId, DateOnly from, DateOnly to);
+
     Task AddBatch(IEnumerable<Slot> slots);
 }

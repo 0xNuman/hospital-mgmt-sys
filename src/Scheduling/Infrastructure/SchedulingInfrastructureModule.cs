@@ -21,8 +21,6 @@ public static class SchedulingInfrastructureModule
         services.AddScoped<IAvailabilityExceptionRepository, AvailabilityExceptionRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
 
-        services.AddScoped<GenerateFutureSlots>();
-
         return services;
     }
 }

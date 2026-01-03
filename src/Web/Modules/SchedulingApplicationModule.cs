@@ -10,6 +10,9 @@ public static class SchedulingApplicationModule
         services.AddScoped<BookSlot>();
         services.AddScoped<CancelBooking>();
         services.AddScoped<AdminBlockSlot>();
+        services.AddScoped<GenerateFutureSlots>();
+        services.AddScoped<GetAvailableSlots>();
+        services.AddScoped<GetPatientBookings>();
         
         services.AddScoped<CreateAvailabilityException>();
         services.AddScoped<DeleteAvailabilityException>();

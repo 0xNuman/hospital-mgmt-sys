@@ -32,6 +32,15 @@ public sealed class SlotRepository(SchedulingDbContext db) : ISlotRepository
         await db.SaveChangesAsync();
     }
 
+    public async Task<IReadOnlyList<Slot>> GetInRange(Guid doctorId, DateOnly from, DateOnly to)
+        => await db.Slots
+            .AsNoTracking()
+            .Where(s =>
+                s.DoctorId == doctorId &&
+                s.Date >= from &&
+                s.Date <= to)
+            .ToListAsync();
+
     public async Task AddBatch(IEnumerable<Slot> slots)
     {
         db.Slots.AddRange(slots);

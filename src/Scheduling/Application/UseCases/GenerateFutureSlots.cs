@@ -29,8 +29,7 @@ public sealed class GenerateFutureSlots(
         var overrides = await exceptions.GetInRange(config.DoctorId, from, to);
 
         // 2. Fetch existing slots to ensure Idempotency (Don't generate duplicates)
-        // Note: Consider adding GetInRange to ISlotRepository
-        var existingSlots = await slots.GetAvailableSlots(config.DoctorId, from);
+        var existingSlots = await slots.GetInRange(config.DoctorId, from, to);
         var existingKeys = existingSlots.Select(s => new { s.Date, s.StartTime }).ToHashSet();
 
         var slotsToAdd = new List<Slot>();
