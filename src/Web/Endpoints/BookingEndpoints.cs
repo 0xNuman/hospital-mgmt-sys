@@ -8,7 +8,7 @@ public static class BookingEndpoints
 {
     public static IEndpointRouteBuilder MapBookingEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/doctors/{doctorId:guid}/slots/{slotId:guid}/book}", BookSlot).WithName("BookSlot");
+        app.MapPost("/api/doctors/{doctorId:guid}/slots/{slotId:guid}/book", BookSlot).WithName("BookSlot");
 
         return app;
     }

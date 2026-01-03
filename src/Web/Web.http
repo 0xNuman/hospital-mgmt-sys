@@ -1,6 +1,9 @@
 @Web_HostAddress = http://localhost:5128
 
-GET {{Web_HostAddress}}/weatherforecast/
+### Get all doctors
+GET {{Web_HostAddress}}/api/admin/doctors
 Accept: application/json
 
-###
+### Get all patients
+GET {{Web_HostAddress}}/api/admin/patients
+Accept: application/json

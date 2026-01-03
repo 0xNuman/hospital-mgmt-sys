@@ -1,13 +1,18 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Web/Web.csproj" />
-  </Folder>
-  <Folder Name="/src/Scheduling/">
-    <Project Path="src/Scheduling/Application/Scheduling.Application.csproj" />
-    <Project Path="src/Scheduling/Domain/Scheduling.Domain.csproj" />
-    <Project Path="src/Scheduling/Infrastructure/Scheduling.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/test/">
-    <Project Path="test/Scheduling.Tests/Scheduling.Tests.csproj" />
-  </Folder>
+    <Folder Name="/src/">
+        <Project Path="src/Web/Web.csproj"/>
+    </Folder>
+    <Folder Name="/src/ReferenceData/">
+        <Project Path="src/ReferenceData/Application/ReferenceData.Application.csproj"/>
+        <Project Path="src/ReferenceData/Domain/ReferenceData.Domain.csproj"/>
+        <Project Path="src/ReferenceData/Infrastructure/ReferenceData.Infrastructure.csproj"/>
+    </Folder>
+    <Folder Name="/src/Scheduling/">
+        <Project Path="src/Scheduling/Application/Scheduling.Application.csproj"/>
+        <Project Path="src/Scheduling/Domain/Scheduling.Domain.csproj"/>
+        <Project Path="src/Scheduling/Infrastructure/Scheduling.Infrastructure.csproj"/>
+    </Folder>
+    <Folder Name="/test/">
+        <Project Path="test/Scheduling.Tests/Scheduling.Tests.csproj"/>
+    </Folder>
 </Solution>
