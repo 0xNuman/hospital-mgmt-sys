@@ -1,35 +1,66 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Calendar, Users, Settings } from 'lucide-react';
+import DoctorList from './pages/DoctorList';
+import DoctorDetail from './pages/DoctorDetail';
+import MyBookings from './pages/MyBookings';
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminDoctors from './pages/admin/AdminDoctors';
+import AdminPatients from './pages/admin/AdminPatients';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+function Navigation() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  if (isAdminRoute) return null;
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <nav className="main-nav">
+      <div className="nav-container">
+        <Link to="/" className="nav-brand">
+          <Calendar size={28} />
+          <span className="gradient-text">HMS</span>
+        </Link>
+
+        <div className="nav-links">
+          <Link to="/" className={location.pathname === '/' ? 'nav-link active' : 'nav-link'}>
+            <Users size={18} />
+            <span>Doctors</span>
+          </Link>
+          <Link to="/my-bookings" className={location.pathname === '/my-bookings' ? 'nav-link active' : 'nav-link'}>
+            <Calendar size={18} />
+            <span>My Bookings</span>
+          </Link>
+          <Link to="/admin/doctors" className="nav-link nav-link-admin">
+            <Settings size={18} />
+            <span>Admin</span>
+          </Link>
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </nav>
+  );
 }
 
-export default App
+function App() {
+  return (
+    <BrowserRouter>
+      <div className="app">
+        <Navigation />
+        <Routes>
+          {/* Patient Routes */}
+          <Route path="/" element={<DoctorList />} />
+          <Route path="/doctors/:doctorId" element={<DoctorDetail />} />
+          <Route path="/my-bookings" element={<MyBookings />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="doctors" element={<AdminDoctors />} />
+            <Route path="patients" element={<AdminPatients />} />
+          </Route>
+        </Routes>
+      </div>
+    </BrowserRouter>
+  );
+}
+
+export default App;
