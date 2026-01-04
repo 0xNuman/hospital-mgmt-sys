@@ -8,6 +8,7 @@ import type {
     BookSlotRequest,
     SetAvailabilityRequest,
     CreateExceptionRequest,
+    BackendSlotDto,
 } from './types';
 
 const API_BASE = '/api';
@@ -35,13 +36,20 @@ export const api = {
         return handleResponse<Doctor[]>(response);
     },
 
-    // Get available slots for a doctor
-    getAvailableSlots: async (doctorId: string, date?: string): Promise<Slot[]> => {
-        const url = date
-            ? `${API_BASE}/doctors/${doctorId}/slots?date=${date}`
-            : `${API_BASE}/doctors/${doctorId}/slots`;
-        const response = await fetch(url);
-        return handleResponse<Slot[]>(response);
+    // Get available slots
+    getAvailableSlots: async (doctorId: string, date: string): Promise<Slot[]> => {
+        const response = await fetch(`${API_BASE}/doctors/${doctorId}/slots?date=${date}`);
+        const data = await handleResponse<BackendSlotDto[]>(response);
+
+        // Map backend DTO to Slot interface
+        return data.map(dto => ({
+            id: dto.slotId,
+            doctorId: doctorId,
+            date: date,
+            startTime: dto.start,
+            endTime: dto.end,
+            status: 'Available'
+        }));
     },
 
     // Book a slot
@@ -58,6 +66,16 @@ export const api = {
     getPatientBookings: async (patientId: string): Promise<Booking[]> => {
         const response = await fetch(`${API_BASE}/patients/${patientId}/bookings`);
         return handleResponse<Booking[]>(response);
+    },
+
+    // Lookup patient by phone
+    lookupPatient: async (phone: string): Promise<Patient> => {
+        const response = await fetch(`${API_BASE}/patients/lookup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone }),
+        });
+        return handleResponse<Patient>(response);
     },
 
     // Cancel booking

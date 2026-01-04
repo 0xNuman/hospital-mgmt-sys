@@ -10,17 +10,23 @@ export interface Doctor {
 export interface Patient {
   id: string;
   fullName: string;
-  email: string;
-  phoneNumber: string;
+  email: string | null;
+  phone: string;
 }
 
 export interface Slot {
-  id: string;
-  doctorId: string;
-  date: string; // ISO date string
-  startTime: string; // HH:mm format
-  endTime: string; // HH:mm format
-  status: 'Available' | 'Booked' | 'Blocked';
+  id: string; // Mapped from slotId
+  doctorId: string; // Not in response, but useful context
+  date: string; // Not in response, but useful context
+  startTime: string; // Mapped from start
+  endTime: string; // Mapped from end
+  status: 'Available' | 'Booked' | 'Blocked'; // Inferred
+}
+
+export interface BackendSlotDto {
+  slotId: string;
+  start: string;
+  end: string;
 }
 
 export interface Booking {

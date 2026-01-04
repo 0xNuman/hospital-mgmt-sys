@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Calendar, Clock, X, User } from 'lucide-react';
+import { Calendar, Clock, X, User, Phone } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { api } from '../lib/api';
-import type { Booking } from '../lib/types';
+import type { Booking, Patient } from '../lib/types';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -11,7 +11,9 @@ import './MyBookings.css';
 
 export default function MyBookings() {
     const [patientId, setPatientId] = useState('');
-    const [inputPatientId, setInputPatientId] = useState('');
+    const [patient, setPatient] = useState<Patient | null>(null);
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [fullName, setFullName] = useState('');
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -54,10 +56,32 @@ export default function MyBookings() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleLookup = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (inputPatientId.trim()) {
-            loadBookings(inputPatientId.trim());
+
+        if (!phoneNumber.trim() || !fullName.trim()) return;
+
+        try {
+            setLoading(true);
+            setError(null);
+
+            // 1. Find patient by phone
+            const patientData = await api.lookupPatient(phoneNumber.trim());
+
+            // 2. Simple verification match (case insensitive)
+            if (patientData.fullName.toLowerCase() !== fullName.trim().toLowerCase()) {
+                throw new Error("Name does not match our records for this phone number");
+            }
+
+            setPatient(patientData);
+            setPatientId(patientData.id);
+            await loadBookings(patientData.id);
+
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Invalid phone number or name');
+            setPatient(null);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -69,44 +93,66 @@ export default function MyBookings() {
             </div>
 
             {!patientId ? (
-                <Card className="patient-id-card">
-                    <form onSubmit={handleSubmit} className="patient-id-form">
+                <Card className="auth-card">
+                    <form onSubmit={handleLookup} className="auth-form">
                         <div className="form-group">
-                            <label htmlFor="patientIdInput">
-                                <User size={20} />
-                                Enter Your Patient ID
+                            <label htmlFor="phoneNumber">
+                                <Phone size={20} />
+                                Phone Number
                             </label>
                             <input
-                                id="patientIdInput"
-                                type="text"
-                                placeholder="Patient ID"
-                                value={inputPatientId}
-                                onChange={(e) => setInputPatientId(e.target.value)}
+                                id="phoneNumber"
+                                type="tel"
+                                placeholder="Enter your phone number"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
                                 className="form-input"
                                 required
                             />
+                            <p className="form-hint">Try: 555-0123</p>
                         </div>
-                        <Button type="submit" size="lg">
-                            View My Bookings
+
+                        <div className="form-group">
+                            <label htmlFor="fullName">
+                                <User size={20} />
+                                Full Name (for verification)
+                            </label>
+                            <input
+                                id="fullName"
+                                type="text"
+                                placeholder="Enter your full name"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                className="form-input"
+                                required
+                            />
+                            <p className="form-hint">Try: John Doe</p>
+                        </div>
+
+                        <Button type="submit" size="lg" isLoading={loading}>
+                            Find My Bookings
                         </Button>
                     </form>
                 </Card>
             ) : (
                 <>
                     <div className="patient-info">
-                        <p>
-                            <strong>Patient ID:</strong> {patientId}
-                        </p>
+                        <div className="patient-details">
+                            <p><strong>Welcome, {patient?.fullName}</strong></p>
+                            <p className="text-sm text-secondary">{patient?.email}</p>
+                        </div>
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => {
                                 setPatientId('');
-                                setInputPatientId('');
+                                setPatient(null);
                                 setBookings([]);
+                                setPhoneNumber('');
+                                setFullName('');
                             }}
                         >
-                            Change Patient ID
+                            Log Out
                         </Button>
                     </div>
 

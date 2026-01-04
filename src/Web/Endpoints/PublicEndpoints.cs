@@ -33,6 +33,21 @@ public static class PublicEndpoints
             return Results.Ok(bookings);
         });
 
+        // 4. Lookup Patient by Phone
+        app.MapPost("/api/patients/lookup", async (
+            LookupPatientRequest request,
+            ReferenceData.Application.Ports.IPatientRepository repo) =>
+        {
+            var patient = await repo.GetByPhone(request.Phone);
+            if (patient == null)
+            {
+                return Results.NotFound(new { message = "Patient not found" });
+            }
+            return Results.Ok(patient);
+        });
+
         return app;
     }
 }
+
+public record LookupPatientRequest(string Phone);

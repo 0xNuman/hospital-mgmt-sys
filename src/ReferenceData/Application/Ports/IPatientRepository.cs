@@ -8,5 +8,7 @@ public interface IPatientRepository
     
     Task<IReadOnlyList<Patient>> GetAll();
     
+    Task<Patient?> GetByPhone(string phone);
+
     Task Add(Patient patient);
 }

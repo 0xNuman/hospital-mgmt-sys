@@ -41,7 +41,7 @@ export default function AdminPatients() {
 
         const filtered = patients.filter((patient) =>
             patient.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            patient.email.toLowerCase().includes(searchQuery.toLowerCase())
+            (patient.email && patient.email.toLowerCase().includes(searchQuery.toLowerCase()))
         );
         setFilteredPatients(filtered);
     };
@@ -90,7 +90,7 @@ export default function AdminPatients() {
                                 </div>
                                 <div className="detail-row">
                                     <Phone size={16} />
-                                    <span>{patient.phoneNumber}</span>
+                                    <span>{patient.phone}</span>
                                 </div>
                             </div>
                         </Card>

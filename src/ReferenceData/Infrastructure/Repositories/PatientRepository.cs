@@ -12,6 +12,9 @@ public sealed class PatientRepository(ReferenceDataDbContext db) : IPatientRepos
     public async Task<IReadOnlyList<Patient>> GetAll()
         => await db.Patients.ToListAsync();
 
+    public async Task<Patient?> GetByPhone(string phone)
+        => await db.Patients.FirstOrDefaultAsync(p => p.Phone == phone);
+
     public async Task Add(Patient patient)
     {
         db.Patients.Add(patient);

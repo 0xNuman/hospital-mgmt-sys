@@ -41,7 +41,8 @@ export default function DoctorDetail() {
             ]);
 
             setDoctor(doctorData || null);
-            setSlots(slotsData.filter(s => s.status === 'Available'));
+            setDoctor(doctorData || null);
+            setSlots(slotsData);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load data');
         } finally {
