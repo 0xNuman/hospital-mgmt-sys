@@ -16,11 +16,12 @@ public sealed class BookSlotConcurrencyTests
     public async Task Only_one_active_booking_can_be_created_for_a_slot()
     {
         // Arrange
-        await using var connection = new SqliteConnection("DataSource=:memory:");
-        await connection.OpenAsync();
+        var connectionString = $"DataSource=file:{Guid.NewGuid()}?mode=memory&cache=shared";
+        await using var keepAliveConnection = new SqliteConnection(connectionString);
+        await keepAliveConnection.OpenAsync();
 
         var options = new DbContextOptionsBuilder<SchedulingDbContext>()
-            .UseSqlite(connection)
+            .UseSqlite(connectionString)
             .Options;
 
         await using (var setupContext = new SchedulingDbContext(options))
@@ -44,8 +45,9 @@ public sealed class BookSlotConcurrencyTests
 
             var slotRepo = new SlotRepository(context);
             var bookingRepo = new BookingRepository(context);
+            var unitOfWork = new SchedulingUnitOfWork(context);
 
-            var useCase = new BookSlot(slotRepo, bookingRepo);
+            var useCase = new BookSlot(slotRepo, bookingRepo, unitOfWork);
 
             return await useCase.Execute(
                 new BookSlotCommand(

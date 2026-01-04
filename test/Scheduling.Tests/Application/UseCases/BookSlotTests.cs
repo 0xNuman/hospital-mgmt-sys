@@ -13,6 +13,7 @@ public class BookSlotTests
 {
     private readonly ISlotRepository _slotRepo;
     private readonly IBookingRepository _bookingRepo;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly BookSlot _useCase;
 
     public BookSlotTests()
@@ -20,9 +21,10 @@ public class BookSlotTests
         // 1. Create Mocks
         _slotRepo = Substitute.For<ISlotRepository>();
         _bookingRepo = Substitute.For<IBookingRepository>();
+        _unitOfWork = Substitute.For<IUnitOfWork>();
         
         // 2. Instantiate Use Case with Mocks
-        _useCase = new BookSlot(_slotRepo, _bookingRepo);
+        _useCase = new BookSlot(_slotRepo, _bookingRepo, _unitOfWork);
     }
 
     [Fact]
@@ -33,7 +35,7 @@ public class BookSlotTests
         var slot = new Slot(slotId, Guid.NewGuid(), DateOnly.FromDateTime(DateTime.Now), new TimeOnly(10, 0), new TimeOnly(10, 15));
         
         // Mock: Slot exists
-        _slotRepo.Get(slotId).Returns(slot);
+        _slotRepo.Get(slotId, Arg.Any<CancellationToken>()).Returns(slot);
 
         // Act
         var command = new BookSlotCommand(slotId, Guid.NewGuid());
@@ -43,8 +45,14 @@ public class BookSlotTests
         Assert.True(result.Success);
         Assert.NotNull(result.BookingId);
         
+        // Verify we updated slot
+        await _slotRepo.Received(1).Update(Arg.Is<Slot>(s => s.Id == slotId && s.Status == SlotStatus.Booked), Arg.Any<CancellationToken>());
+
         // Verify we tried to add a booking
-        await _bookingRepo.Received(1).Add(Arg.Is<Booking>(b => b.SlotId == slotId));
+        await _bookingRepo.Received(1).Add(Arg.Is<Booking>(b => b.SlotId == slotId), Arg.Any<CancellationToken>());
+
+        // Verify UoW commit
+        await _unitOfWork.Received(1).Commit(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -52,7 +60,7 @@ public class BookSlotTests
     {
         // Arrange
         var slotId = Guid.NewGuid();
-        _slotRepo.Get(slotId).Returns((Slot?)null);
+        _slotRepo.Get(slotId, Arg.Any<CancellationToken>()).Returns((Slot?)null);
 
         // Act
         var result = await _useCase.Execute(new BookSlotCommand(slotId, Guid.NewGuid()));
@@ -72,7 +80,7 @@ public class BookSlotTests
         // Setup: Slot is technically "Blocked" in the domain
         slot.Block(); 
         
-        _slotRepo.Get(slotId).Returns(slot);
+        _slotRepo.Get(slotId, Arg.Any<CancellationToken>()).Returns(slot);
 
         // Act
         var result = await _useCase.Execute(new BookSlotCommand(slotId, Guid.NewGuid()));
@@ -89,12 +97,12 @@ public class BookSlotTests
         var slotId = Guid.NewGuid();
         var slot = new Slot(slotId, Guid.NewGuid(), DateOnly.FromDateTime(DateTime.Now), new TimeOnly(10, 0), new TimeOnly(10, 15));
         
-        _slotRepo.Get(slotId).Returns(slot);
+        _slotRepo.Get(slotId, Arg.Any<CancellationToken>()).Returns(slot);
 
         // Mock: When BookingRepo.Add is called, throw the specific Domain Exception
         // This simulates the database unique constraint violation
         _bookingRepo
-            .When(x => x.Add(Arg.Any<Booking>()))
+            .When(x => x.Add(Arg.Any<Booking>(), Arg.Any<CancellationToken>()))
             .Do(x => throw new SlotAlreadyBookedException());
 
         // Act

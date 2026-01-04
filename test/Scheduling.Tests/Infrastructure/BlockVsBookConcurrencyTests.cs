@@ -11,16 +11,18 @@ namespace Scheduling.Tests.Infrastructure;
 
 public class BlockVsBookConcurrencyTests : IDisposable
 {
-    private readonly SqliteConnection _connection;
+    private readonly SqliteConnection _keepAliveConnection;
     private readonly DbContextOptions<SchedulingDbContext> _options;
 
     public BlockVsBookConcurrencyTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        var connectionString = $"DataSource=file:{Guid.NewGuid()}?mode=memory&cache=shared";
+
+        _keepAliveConnection = new SqliteConnection(connectionString);
+        _keepAliveConnection.Open();
 
         _options = new DbContextOptionsBuilder<SchedulingDbContext>()
-            .UseSqlite(_connection)
+            .UseSqlite(connectionString)
             .Options;
 
         using var ctx = new SchedulingDbContext(_options);
@@ -67,7 +69,8 @@ public class BlockVsBookConcurrencyTests : IDisposable
         await using var ctx = new SchedulingDbContext(_options);
         var slotRepo = new SlotRepository(ctx);
         var bookingRepo = new BookingRepository(ctx);
-        var uc = new BookSlot(slotRepo, bookingRepo);
+        var unitOfWork = new SchedulingUnitOfWork(ctx);
+        var uc = new BookSlot(slotRepo, bookingRepo, unitOfWork);
 
         await uc.Execute(new BookSlotCommand(slotId, Guid.NewGuid()));
     }
@@ -79,7 +82,8 @@ public class BlockVsBookConcurrencyTests : IDisposable
         var bookingRepo = new BookingRepository(ctx); // Create repo
         
         // Inject both repos
-        var uc = new AdminBlockSlot(slotRepo, bookingRepo); 
+        var unitOfWork = new SchedulingUnitOfWork(ctx);
+        var uc = new AdminBlockSlot(slotRepo, bookingRepo, unitOfWork); 
 
         await uc.Execute(new BlockSlotCommand(slotId));
     }
@@ -92,5 +96,5 @@ public class BlockVsBookConcurrencyTests : IDisposable
         await ctx.SaveChangesAsync();
     }
 
-    public void Dispose() => _connection.Dispose();
+    public void Dispose() => _keepAliveConnection.Dispose();
 }

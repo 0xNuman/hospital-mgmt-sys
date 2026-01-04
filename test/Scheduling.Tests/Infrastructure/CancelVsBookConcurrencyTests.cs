@@ -12,16 +12,19 @@ namespace Scheduling.Tests.Infrastructure;
 
 public class CancelVsBookConcurrencyTests : IDisposable
 {
-    private readonly SqliteConnection _connection;
+    private readonly SqliteConnection _keepAliveConnection;
     private readonly DbContextOptions<SchedulingDbContext> _options;
 
     public CancelVsBookConcurrencyTests()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        // specific name to avoid collision with other tests if running in parallel
+        var connectionString = $"DataSource=file:{Guid.NewGuid()}?mode=memory&cache=shared";
+        
+        _keepAliveConnection = new SqliteConnection(connectionString);
+        _keepAliveConnection.Open();
 
         _options = new DbContextOptionsBuilder<SchedulingDbContext>()
-            .UseSqlite(_connection)
+            .UseSqlite(connectionString)
             .Options;
 
         using var ctx = new SchedulingDbContext(_options);
@@ -68,7 +71,8 @@ public class CancelVsBookConcurrencyTests : IDisposable
         await using var ctx = new SchedulingDbContext(_options);
         var slotRepo = new SlotRepository(ctx);
         var bookingRepo = new BookingRepository(ctx);
-        var uc = new BookSlot(slotRepo, bookingRepo);
+        var unitOfWork = new SchedulingUnitOfWork(ctx);
+        var uc = new BookSlot(slotRepo, bookingRepo, unitOfWork);
 
         return await uc.Execute(new BookSlotCommand(slotId, Guid.NewGuid()));
     }
@@ -77,7 +81,11 @@ public class CancelVsBookConcurrencyTests : IDisposable
     {
         await using var ctx = new SchedulingDbContext(_options);
         var bookingRepo = new BookingRepository(ctx);
-        var uc = new CancelBooking(bookingRepo);
+        var slotRepo = new SlotRepository(ctx);
+        var unitOfWork = new SchedulingUnitOfWork(ctx);
+        
+        // We need ISlotRepository now for CancelBooking
+        var uc = new CancelBooking(bookingRepo, slotRepo, unitOfWork);
 
         return await uc.Execute(new CancelBookingCommand(bookingId));
     }
@@ -93,5 +101,5 @@ public class CancelVsBookConcurrencyTests : IDisposable
         await ctx.SaveChangesAsync();
     }
 
-    public void Dispose() => _connection.Dispose();
+    public void Dispose() => _keepAliveConnection.Dispose();
 }
