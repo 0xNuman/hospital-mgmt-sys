@@ -32,24 +32,75 @@
 
 ## 🏗️ Architecture
 
-### Backend (.NET 10)
-Built with **Clean Architecture** and **Domain-Driven Design**:
+### Modular Monolith Design
+
+This application follows **Modular Monolith** principles, combining the simplicity of a monolith with the modularity of microservices. Each module is independently deployable as a microservice in the future if needed.
+
+#### Module Structure
 
 ```
 src/
-├── ReferenceData/          # Bounded Context: Master Data
+├── ReferenceData/          # Module: Master Data
 │   ├── Domain/            # Entities: Doctor, Patient, DoctorAvailability
-│   ├── Application/       # Use Cases & Ports
-│   └── Infrastructure/    # EF Core, Database
-├── Scheduling/            # Bounded Context: Transactional Data
-│   ├── Domain/           # Entities: Slot, Booking
-│   ├── Application/      # Use Cases & Ports
-│   └── Infrastructure/   # EF Core, Database
-└── Web/                  # API & Frontend Host
+│   ├── Application/       # Use Cases & Ports (Interfaces)
+│   └── Infrastructure/    # EF Core, Database, Port Implementations
+├── Scheduling/            # Module: Appointment Scheduling
+│   ├── Domain/           # Entities: Slot, Booking, AvailabilityException
+│   ├── Application/      # Use Cases & Ports (Interfaces)
+│   └── Infrastructure/   # EF Core, Database, Port Implementations
+└── Web/                  # Composition Root & API Host
     ├── Endpoints/        # Minimal API Endpoints
     ├── Workers/          # Background Services
     └── ClientApp/        # React Frontend
 ```
+
+#### Key Architectural Principles
+
+**1. Module Independence**
+- Each module has its own database (separate SQLite files)
+- Modules communicate through well-defined ports (interfaces)
+- No direct dependencies between module implementations
+
+**2. Cross-Module Communication**
+The `Scheduling` module depends on `ReferenceData` through **port/adapter pattern**:
+
+```csharp
+// Scheduling module defines the port (interface)
+namespace Scheduling.Application.Ports;
+public interface IAvailabilityExceptionRepository { ... }
+
+// ReferenceData module implements the port
+namespace ReferenceData.Infrastructure;
+public class AvailabilityExceptionRepository : IAvailabilityExceptionRepository { ... }
+```
+
+This allows `Scheduling` to access availability data without coupling to `ReferenceData` implementation.
+
+**3. Dependency Injection at Composition Root**
+The `Web` project wires everything together:
+
+```csharp
+// Program.cs
+builder.Services
+    .AddReferenceDataApplication()
+    .AddReferenceDataInfrastructure(configuration)
+    .AddSchedulingApplication()
+    .AddSchedulingInfrastructure(configuration);
+```
+
+**4. Future Extensibility**
+New modules can be added easily (e.g., `Billing`, `Inventory`, `Reporting`) following the same pattern:
+- Define domain entities
+- Create use cases and ports
+- Implement infrastructure
+- Register in `Program.cs`
+
+**Benefits of This Approach**:
+- ✅ **Simple deployment** - Single application to deploy
+- ✅ **Clear boundaries** - Each module is self-contained
+- ✅ **Easy testing** - Modules can be tested independently
+- ✅ **Microservice-ready** - Can extract modules to separate services later
+- ✅ **Shared infrastructure** - Common concerns handled once
 
 **Key Technologies**:
 - ASP.NET Core Minimal APIs
