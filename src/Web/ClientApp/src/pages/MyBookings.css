@@ -20,30 +20,62 @@
     color: var(--color-text-secondary);
 }
 
-.patient-id-card {
+.auth-card {
     max-width: 500px;
     margin: 0 auto;
+    background: var(--color-bg-glass);
+    backdrop-filter: blur(16px);
 }
 
-.patient-id-form {
+.auth-form {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-xl);
 }
 
-.patient-id-form .form-group {
+.auth-form .form-group {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
 }
 
-.patient-id-form label {
+.auth-form label {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    margin-left: 2px;
+}
+
+.auth-form label svg {
+    color: var(--color-accent-primary);
+}
+
+.auth-form input {
+    height: 48px;
+    padding: 0 var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
     color: var(--color-text-primary);
-    font-weight: 600;
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-md);
+    transition: all 0.2s ease;
+}
+
+.auth-form input:focus {
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 0 4px var(--color-accent-glow);
+    outline: none;
+    background: var(--color-bg-secondary);
+}
+
+.form-hint {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-top: var(--spacing-xs);
+    margin-left: var(--spacing-xs);
 }
 
 .patient-info {

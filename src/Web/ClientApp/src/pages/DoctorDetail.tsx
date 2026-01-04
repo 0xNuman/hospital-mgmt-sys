@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, Clock, Stethoscope } from 'lucide-react';
 import { format, addDays, parseISO } from 'date-fns';
 import { api } from '../lib/api';
 import type { Doctor, Slot } from '../lib/types';
+import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -13,6 +14,7 @@ import './DoctorDetail.css';
 export default function DoctorDetail() {
     const { doctorId } = useParams<{ doctorId: string }>();
     const navigate = useNavigate();
+    const { patient } = useAuth(); // <--- Get logged in patient
 
     const [doctor, setDoctor] = useState<Doctor | null>(null);
     const [slots, setSlots] = useState<Slot[]>([]);
@@ -23,6 +25,13 @@ export default function DoctorDetail() {
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [patientId, setPatientId] = useState('');
     const [booking, setBooking] = useState(false);
+
+    // Auto-fill patient ID if logged in
+    useEffect(() => {
+        if (patient) {
+            setPatientId(patient.id);
+        }
+    }, [patient]);
 
     useEffect(() => {
         if (doctorId) {
@@ -41,7 +50,6 @@ export default function DoctorDetail() {
             ]);
 
             setDoctor(doctorData || null);
-            setDoctor(doctorData || null);
             setSlots(slotsData);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -51,15 +59,20 @@ export default function DoctorDetail() {
     };
 
     const handleBookSlot = async () => {
-        if (!selectedSlot || !doctorId || !patientId.trim()) return;
+        // Use either logged-in ID or manually entered one
+        const finalPatientId = patient ? patient.id : patientId;
+
+        if (!selectedSlot || !doctorId || !finalPatientId.trim()) return;
 
         try {
             setBooking(true);
-            await api.bookSlot(doctorId, selectedSlot.id, patientId.trim());
+            await api.bookSlot(doctorId, selectedSlot.id, finalPatientId.trim());
             setShowBookingModal(false);
             setSelectedSlot(null);
-            setPatientId('');
-            // Reload slots to reflect the booking
+            // Don't clear patientId if we are using the logged-in user
+            if (!patient) {
+                setPatientId('');
+            }
             await loadDoctorAndSlots();
             alert('Booking successful! 🎉');
         } catch (err) {
@@ -208,17 +221,26 @@ export default function DoctorDetail() {
 
                     <div className="form-group">
                         <label htmlFor="patientId">Patient ID</label>
-                        <input
-                            id="patientId"
-                            type="text"
-                            placeholder="Enter your patient ID"
-                            value={patientId}
-                            onChange={(e) => setPatientId(e.target.value)}
-                            className="form-input"
-                        />
-                        <p className="form-hint">
-                            Enter your patient ID to confirm the booking
-                        </p>
+                        {patient ? (
+                            <div className="logged-in-message">
+                                <p>Booking as <strong>{patient.fullName}</strong></p>
+                                <p className="text-sm text-secondary">ID: {patient.id}</p>
+                            </div>
+                        ) : (
+                            <>
+                                <input
+                                    id="patientId"
+                                    type="text"
+                                    placeholder="Enter your patient ID"
+                                    value={patientId}
+                                    onChange={(e) => setPatientId(e.target.value)}
+                                    className="form-input"
+                                />
+                                <p className="form-hint">
+                                    Enter your patient ID to confirm the booking
+                                </p>
+                            </>
+                        )}
                     </div>
                 </div>
             </Modal>

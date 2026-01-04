@@ -6,6 +6,7 @@ import MyBookings from './pages/MyBookings';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDoctors from './pages/admin/AdminDoctors';
 import AdminPatients from './pages/admin/AdminPatients';
+import { AuthProvider } from './context/AuthContext';
 import './App.css';
 
 function Navigation() {
@@ -43,23 +44,25 @@ function Navigation() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <div className="app">
-        <Navigation />
-        <Routes>
-          {/* Patient Routes */}
-          <Route path="/" element={<DoctorList />} />
-          <Route path="/doctors/:doctorId" element={<DoctorDetail />} />
-          <Route path="/my-bookings" element={<MyBookings />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="app">
+          <Navigation />
+          <Routes>
+            {/* Patient Routes */}
+            <Route path="/" element={<DoctorList />} />
+            <Route path="/doctors/:doctorId" element={<DoctorDetail />} />
+            <Route path="/my-bookings" element={<MyBookings />} />
 
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route path="doctors" element={<AdminDoctors />} />
-            <Route path="patients" element={<AdminPatients />} />
-          </Route>
-        </Routes>
-      </div>
-    </BrowserRouter>
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route path="doctors" element={<AdminDoctors />} />
+              <Route path="patients" element={<AdminPatients />} />
+            </Route>
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

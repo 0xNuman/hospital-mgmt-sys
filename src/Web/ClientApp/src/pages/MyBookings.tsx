@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
 import { Calendar, Clock, X, User, Phone } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { api } from '../lib/api';
-import type { Booking, Patient } from '../lib/types';
+import type { Booking } from '../lib/types';
+import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -10,8 +12,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import './MyBookings.css';
 
 export default function MyBookings() {
-    const [patientId, setPatientId] = useState('');
-    const [patient, setPatient] = useState<Patient | null>(null);
+    const { patient, login, logout, isLoading: authLoading } = useAuth();
     const [phoneNumber, setPhoneNumber] = useState('');
     const [fullName, setFullName] = useState('');
     const [bookings, setBookings] = useState<Booking[]>([]);
@@ -20,13 +21,21 @@ export default function MyBookings() {
     const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
     const [cancelling, setCancelling] = useState(false);
 
+    // Load bookings when patient is logged in
+    useEffect(() => {
+        if (patient) {
+            loadBookings(patient.id);
+        } else {
+            setBookings([]);
+        }
+    }, [patient]);
+
     const loadBookings = async (pid: string) => {
         try {
             setLoading(true);
             setError(null);
             const data = await api.getPatientBookings(pid);
             setBookings(data.filter(b => b.status === 'Active'));
-            setPatientId(pid);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load bookings');
             setBookings([]);
@@ -45,8 +54,8 @@ export default function MyBookings() {
             await api.cancelBooking('00000000-0000-0000-0000-000000000000', cancellingBooking.slotId);
             setCancellingBooking(null);
             // Reload bookings
-            if (patientId) {
-                await loadBookings(patientId);
+            if (patient) {
+                await loadBookings(patient.id);
             }
             alert('Booking cancelled successfully');
         } catch (err) {
@@ -64,26 +73,17 @@ export default function MyBookings() {
         try {
             setLoading(true);
             setError(null);
-
-            // 1. Find patient by phone
-            const patientData = await api.lookupPatient(phoneNumber.trim());
-
-            // 2. Simple verification match (case insensitive)
-            if (patientData.fullName.toLowerCase() !== fullName.trim().toLowerCase()) {
-                throw new Error("Name does not match our records for this phone number");
-            }
-
-            setPatient(patientData);
-            setPatientId(patientData.id);
-            await loadBookings(patientData.id);
-
+            await login(phoneNumber.trim(), fullName.trim());
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Invalid phone number or name');
-            setPatient(null);
         } finally {
             setLoading(false);
         }
     };
+
+    if (authLoading) {
+        return <LoadingSpinner size="lg" text="Checking authentication..." />;
+    }
 
     return (
         <div className="my-bookings-page">
@@ -92,7 +92,7 @@ export default function MyBookings() {
                 <p>View and manage your appointments</p>
             </div>
 
-            {!patientId ? (
+            {!patient ? (
                 <Card className="auth-card">
                     <form onSubmit={handleLookup} className="auth-form">
                         <div className="form-group">
@@ -138,15 +138,14 @@ export default function MyBookings() {
                 <>
                     <div className="patient-info">
                         <div className="patient-details">
-                            <p><strong>Welcome, {patient?.fullName}</strong></p>
-                            <p className="text-sm text-secondary">{patient?.email}</p>
+                            <p><strong>Welcome, {patient.fullName}</strong></p>
+                            <p className="text-sm text-secondary">{patient.email}</p>
                         </div>
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                                setPatientId('');
-                                setPatient(null);
+                                logout();
                                 setBookings([]);
                                 setPhoneNumber('');
                                 setFullName('');
